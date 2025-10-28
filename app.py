@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
-import joblib
 import time
 from datetime import datetime
 
@@ -45,8 +44,69 @@ st.markdown("""
         margin: 5px 0;
         border: 1px solid #BBF7D0;
     }
+    .stSpinner > div {
+        text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# EMBED YOUR FAQ DATA DIRECTLY IN THE CODE
+FAQ_DATA = {
+    'question': [
+        'What is the deadline for project submission?',
+        'How many members in a project group?',
+        'Where to submit internship evaluation?',
+        'What are the library opening hours?',
+        'How to contact computer science department?',
+        'When is the course registration period?',
+        'How to apply for a transcript?',
+        'What is the minimum GPA requirement?',
+        'Where can I find the academic calendar?',
+        'How to reset my student portal password?',
+        'Are there any programming workshops?',
+        'What textbooks are required for CS courses?',
+        'How to join student clubs?',
+        'What are the exam rules and regulations?',
+        'Can I take courses from other departments?',
+        'Where is the student cafeteria located?',
+        'How to apply for graduation?',
+        'What is the tuition fee payment deadline?',
+        'Are there scholarships available?',
+        'How to book a study room in the library?',
+        'What is the procedure for course withdrawal?',
+        'Where can I find research paper resources?',
+        'How to access online learning materials?',
+        'What are the computer lab operating hours?',
+        'How to report technical issues?'
+    ],
+    'answer': [
+        'Project submissions are due by November 3, 2025 for Final Year Project I.',
+        'Each group can have maximum 5 members for the Final Year Project.',
+        'Submit your internship evaluation through your class representative by October 31, 2025.',
+        'The library is open from 8:00 AM to 8:00 PM from Monday to Saturday.',
+        'You can visit the CS department office in Room 205, or email csdepartment@university.edu',
+        'Course registration opens on November 10, 2025 and closes on November 20, 2025.',
+        'You can apply for transcripts online through the student portal or visit the registrar\'s office.',
+        'The minimum GPA requirement to graduate is 2.0 on a 4.0 scale.',
+        'The academic calendar is available on the university website under "Academic Affairs".',
+        'Visit the IT help desk in Room 101 or use the "Forgot Password" feature on the login page.',
+        'Yes, the CS department holds programming workshops every Friday at 3 PM in Lab 3.',
+        'Textbook lists are available on the department website and at the university bookstore.',
+        'Visit the Student Affairs office to learn about available clubs and registration process.',
+        'Exam rules are posted on the university website and announced before each exam period.',
+        'Yes, with approval from both department advisors. Maximum 2 cross-department courses per semester.',
+        'The student cafeteria is located in the Student Center building, ground floor.',
+        'Graduation applications must be submitted through the student portal by March 15, 2026.',
+        'Tuition fees for the semester are due by January 30, 2026.',
+        'Yes, various scholarships are available. Check the Financial Aid office for details.',
+        'Study rooms can be booked online through the library website or at the front desk.',
+        'Course withdrawal requires advisor approval and must be done before the mid-term deadline.',
+        'Research papers and journals are available through the library digital database.',
+        'Online materials can be accessed through the university LMS (Learning Management System).',
+        'Computer labs are open from 7:00 AM to 10:00 PM daily, including weekends.',
+        'Technical issues can be reported to the IT help desk in Room 101 or via email at it-support@university.edu'
+    ]
+}
 
 class UniversityFAQAssistant:
     def __init__(self):
@@ -55,9 +115,9 @@ class UniversityFAQAssistant:
         self.tfidf_matrix = None
         
     def load_data(self):
-        """Load FAQ data from CSV file"""
+        """Load FAQ data from embedded data"""
         try:
-            self.df = pd.read_csv('university_faq_expanded.csv')
+            self.df = pd.DataFrame(FAQ_DATA)
             st.success(f"✅ Loaded {len(self.df)} FAQs successfully!")
             return True
         except Exception as e:
@@ -79,7 +139,7 @@ class UniversityFAQAssistant:
             st.error("❌ No data loaded. Please load data first.")
             return False
             
-        with st.spinner("🤖 Training AI model..."):
+        with st.spinner("🤖 Training AI model... This may take a few seconds."):
             # Preprocess all questions
             processed_questions = [self.preprocess_text(q) for q in self.df['question']]
             
@@ -131,8 +191,8 @@ def initialize_assistant():
     """Initialize and train the assistant"""
     assistant = UniversityFAQAssistant()
     if assistant.load_data():
-        assistant.train_model()
-        return assistant
+        if assistant.train_model():
+            return assistant
     return None
 
 def main():
@@ -163,13 +223,20 @@ def main():
         - *"How to get transcript"*
         - *"Course registration period"*
         - *"Student cafeteria location"*
+        - *"Computer lab hours"*
+        - *"Scholarship information"*
         """)
+        
+        st.markdown("---")
+        st.header("📊 System Info")
+        st.write(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        st.write("Powered by: Scikit-learn + Streamlit")
     
     # Initialize assistant
     assistant = initialize_assistant()
     
     if assistant is None:
-        st.error("Failed to initialize the AI Assistant. Please check if 'university_faq_expanded.csv' exists.")
+        st.error("Failed to initialize the AI Assistant. Please refresh the page.")
         return
     
     # Initialize chat history
@@ -177,7 +244,7 @@ def main():
         st.session_state.messages = []
         st.session_state.messages.append({
             "role": "assistant", 
-            "content": "Hello! I'm your University AI Assistant. How can I help you today? 🎓",
+            "content": "Hello! I'm your University AI Assistant. I can help with academic queries, deadlines, campus facilities, and more! How can I assist you today? 🎓",
             "confidence": 1.0,
             "matched_question": "Welcome"
         })
@@ -222,6 +289,19 @@ def main():
             "confidence": confidence,
             "matched_question": matched_question
         })
+    
+    # FAQ Preview Section
+    st.markdown("---")
+    st.subheader("📋 Frequently Asked Questions")
+    
+    # Display some FAQs from the embedded data
+    faq_df = pd.DataFrame(FAQ_DATA)
+    cols = st.columns(2)
+    
+    for i, row in faq_df.head(10).iterrows():  # Show first 10 FAQs
+        with cols[i % 2]:
+            with st.expander(f"❓ {row['question']}"):
+                st.write(f"**Answer:** {row['answer']}")
 
 if __name__ == "__main__":
     main()
